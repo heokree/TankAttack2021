@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
+using TMPro;
+using UnityEngine.UI;
 
 // MonoBehaviour를 상속받으면서 Photon 관련 콜백함수들을 모아둔 클래스를 상속받아야함.
 public class PhotonManager : MonoBehaviourPunCallbacks
@@ -10,6 +12,9 @@ public class PhotonManager : MonoBehaviourPunCallbacks
     // 게임 버전이 일치하는 사람들끼리 플레이가능하도록 설정함.
     private readonly string gameVersion = "v1.0";
     private string UserId = "HR";
+
+    public TMP_InputField userId;
+    public TMP_InputField roonName;
 
     void Awake()
     {
@@ -31,6 +36,13 @@ public class PhotonManager : MonoBehaviourPunCallbacks
     public override void OnJoinRandomFailed(short returnCode, string message)
     {
         Debug.Log($"code={returnCode}, msg={message}");
+
+        // 룸 속성을 설정
+        RoomOptions ro = new RoomOptions();
+        ro.IsOpen = true;
+        ro.IsVisible = true;
+        ro.MaxPlayers = 30;
+
         // 룸을 생성
         PhotonNetwork.CreateRoom("My Room");
     }
@@ -46,5 +58,8 @@ public class PhotonManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("방 입장 완료");
         Debug.Log(PhotonNetwork.CurrentRoom.Name);
+
+        // 통신이 가능한 주인공 캐릭터(탱크) 생성
+        PhotonNetwork.Instantiate("Tank", new Vector3(0, 5.0f, 0), Quaternion.identity, 0);
     }
 }
