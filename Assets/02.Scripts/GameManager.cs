@@ -9,13 +9,26 @@ using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviourPunCallbacks
 {
+#region Field 선언
+    [Header("Room Info")]
     public TMP_Text roomNameText;
     public TMP_Text connectInfoText;
     public TMP_Text messageText;
+
+    [Header("Chatting UI")]
+    public TMP_Text chatListText;
+    // public TMP_InputField msgIF;
+    public TMP_InputField msgInputField;
+
+    private PhotonView pv;
+
     public Button exitButton;
 
+    // singleton 변수
     public static GameManager instance = null;
+#endregion
 
+#region Unity 함수
     void Awake()
     {
         instance = this;
@@ -28,9 +41,12 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     void Start()
     {
+        pv = GetComponent<PhotonView>();
         SetRoomInfo();
     }
+#endregion
 
+#region room 관련 UI 로직
     void SetRoomInfo()
     {
         Room currentRoom = PhotonNetwork.CurrentRoom;
@@ -64,4 +80,19 @@ public class GameManager : MonoBehaviourPunCallbacks
         string msg = $"\n<color=#ff0000>{otherPlayer.NickName}</color> left room";
         messageText.text += msg;
     }
+#endregion
+
+#region chating 구현
+    public void OnSendClick()
+    {
+        string _msg = $"<color=#00ff00>[{PhotonNetwork.NickName}]</color> {msgInputField.text}";
+        pv.RPC("SendChatMessage", RpcTarget.AllBufferedViaServer, _msg);
+    }
+
+    [PunRPC]
+    void SendChatMessage (string msg)
+    {
+        chatListText.text += $"{msg}\n";
+    }
+#endregion
 }

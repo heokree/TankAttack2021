@@ -4,7 +4,7 @@ using UnityEngine;
 using Photon.Pun;
 using UnityStandardAssets.Utility;
 
-public class TankCtrl : MonoBehaviour
+public class TankCtrl : MonoBehaviour, IPunObservable
 {
     private Transform tr;
     public float speed = 10.0f;
@@ -62,6 +62,19 @@ public class TankCtrl : MonoBehaviour
             float r = Input.GetAxis("Mouse ScrollWheel");
             cannonMesh.Rotate(Vector3.right* Time.deltaTime * r * 200.0f);
         }
+        else
+        {   
+            // dead reckoning 에 대한 구현
+            if ((tr.position - receivePos).sqrMagnitude > 3.0f * 3.0f)
+            {
+                tr.position = receivePos;
+            }
+            else
+            {
+                tr.position = Vector3.Lerp(tr.position, receivePos, Time.deltaTime * 10.0f);
+            }
+            tr.rotation = Quaternion.Slerp(tr.rotation, receiveRot, Time.deltaTime * 10.0f);
+        }
     }
 
     [PunRPC]
@@ -70,5 +83,24 @@ public class TankCtrl : MonoBehaviour
         GameObject _cannon = Instantiate(cannon, firePos.position, firePos.rotation);
         audio?.PlayOneShot(fireCannon);
         _cannon.GetComponent<Cannon>().shooter = shooterName;
+    }
+
+    // 네트워크를 통해서 수신받을 변수
+    Vector3 receivePos      = Vector3.zero;
+    Quaternion receiveRot   = Quaternion.identity;
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+        if (stream.IsWriting) // PhotonView IsMine == true
+        {
+            stream.SendNext(tr.position); // 위치
+            stream.SendNext(tr.rotation); // 회전값
+        }
+        else
+        {
+            // 위에서 2가지 2번에 걸쳐 보냈으므로 2번 받아야함. 보낸 순서대로 받아야 함
+            receivePos = (Vector3) stream.ReceiveNext(); 
+            receiveRot = (Quaternion) stream.ReceiveNext();
+        }
     }
 }
